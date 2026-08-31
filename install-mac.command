@@ -47,11 +47,7 @@ if [[ -z "$CHAIN_KEY" ]]; then
   exit 1
 fi
 
-APP_URL="${CHAIN_APP_URL:-}"
-if [[ -z "$APP_URL" ]]; then
-  echo "App URL (press return to skip — only used to make the notification clickable):"
-  read -r APP_URL
-fi
+APP_URL="${CHAIN_APP_URL:-https://alex-rosier.github.io/chain/}"
 
 umask 077
 cat > "$CONFIG" <<EOF

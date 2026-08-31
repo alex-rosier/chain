@@ -12,7 +12,7 @@
 
 const SUPABASE_URL = "https://owuractrglhippvuilxa.supabase.co";
 const SUPABASE_KEY = "PASTE_PUBLISHABLE_KEY_HERE";   // ← fill this in, in Scriptable only
-const APP_URL      = "PASTE_YOUR_APP_URL_HERE";  // ← your GitHub Pages URL
+const APP_URL      = "https://alex-rosier.github.io/chain/";
 
 const MARKER  = new Color("#D33726");
 const MARKER_D= new Color("#FF5240");

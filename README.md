@@ -76,7 +76,7 @@ widget and the nudge never reimplement the streak rules:
 
 1. **Database** — paste `schema.sql` into the Supabase SQL editor and run it.
    Check it with `select * from chain_status();`
-2. **Host** — GitHub Pages, serving from `main` / `docs`.
+2. **Host** — GitHub Pages, serving from `main` / `docs`. Lives at <https://alex-rosier.github.io/chain/>.
 3. **Devices** — open the Pages URL with `#k=<key>` appended, once per device,
    then Add to Home Screen (iOS) or Install as app (Chrome).
 4. **Widget** — Scriptable, paste `chain-widget.js`, fill in the key and URL.
