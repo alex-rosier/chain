@@ -1,5 +1,9 @@
 -- Chain — one table, one row per day.
 -- Paste into Supabase → SQL Editor → Run.
+--
+-- This file creates a database from scratch. `create table if not exists` is
+-- a no-op against a table that already exists, so an existing project takes
+-- new columns from migrations/ instead — see migrations/002_v2.sql.
 
 create table if not exists public.days (
   d    date        primary key,          -- local calendar day, "YYYY-MM-DD"
@@ -7,7 +11,9 @@ create table if not exists public.days (
   c    boolean     not null default false, -- content
   r    boolean     not null default false, -- rest day (bridges the chain)
   m    smallint,                           -- mood 1-5, null = not logged
-  n    text        not null default '',    -- one-line note
+  n    text        not null default '',    -- the day's recap, free text
+  x    jsonb       not null default '{}'::jsonb,  -- optional habits; never affects the chain
+  bio  jsonb,                              -- reserved: Oura sleep / readiness
   u    bigint      not null default 0,     -- client updated-at (ms) — last write wins
   constraint mood_range check (m is null or (m between 1 and 5))
 );

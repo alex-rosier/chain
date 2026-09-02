@@ -32,6 +32,15 @@
   --rule-2:#F0EDE7;
   --marker:#D33726;
   --bleed:rgba(211,55,38,.11);
+  /* Mood ink — a sequential ramp, and deliberately a different ink from the
+     marker so a mood can never read as a chain mark (OKLab dE 24.9 normal,
+     18.2 deuteranopia, measured). Strictly monotonic lightness, ~0.10/step.
+     --mood-on-N is whatever stays legible sitting on top of --mood-N. */
+  --mood-1:#AFC0D8; --mood-on-1:#17161A;
+  --mood-2:#8AA1C2; --mood-on-2:#17161A;
+  --mood-3:#6480A8; --mood-on-3:#FBFAF7;
+  --mood-4:#42608B; --mood-on-4:#FBFAF7;
+  --mood-5:#27436B; --mood-on-5:#FBFAF7;
   --good:#3E7C59;
   --shadow:0 1px 2px rgba(28,24,16,.045), 0 10px 30px -16px rgba(28,24,16,.16);
   --shadow-lift:0 2px 6px rgba(28,24,16,.06), 0 18px 44px -18px rgba(28,24,16,.24);
@@ -57,6 +66,11 @@
     --rule-2:#232225;
     --marker:#FF5240;
     --bleed:rgba(255,82,64,.18);
+    --mood-1:#2E4267; --mood-on-1:#F2EFE9;
+    --mood-2:#42608B; --mood-on-2:#F2EFE9;
+    --mood-3:#5F7CA6; --mood-on-3:#F2EFE9;
+    --mood-4:#8AA1C2; --mood-on-4:#121214;
+    --mood-5:#B4C6DE; --mood-on-5:#121214;
     --good:#5FA97C;
     --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 30px -16px rgba(0,0,0,.7);
     --shadow-lift:0 2px 8px rgba(0,0,0,.45), 0 18px 44px -18px rgba(0,0,0,.8);
@@ -74,6 +88,11 @@
   --rule-2:#232225;
   --marker:#FF5240;
   --bleed:rgba(255,82,64,.18);
+  --mood-1:#2E4267; --mood-on-1:#F2EFE9;
+  --mood-2:#42608B; --mood-on-2:#F2EFE9;
+  --mood-3:#5F7CA6; --mood-on-3:#F2EFE9;
+  --mood-4:#8AA1C2; --mood-on-4:#121214;
+  --mood-5:#B4C6DE; --mood-on-5:#121214;
   --good:#5FA97C;
   --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 30px -16px rgba(0,0,0,.7);
   --shadow-lift:0 2px 8px rgba(0,0,0,.45), 0 18px 44px -18px rgba(0,0,0,.8);
@@ -127,6 +146,9 @@ header.top{
   width:5px;height:5px;border-radius:50%;background:var(--faint);
   margin-right:8px;flex:none;transition:background .3s ease;
 }
+/* An explicit rule for every state, so "not configured" can never be
+   confused with a typo'd attribute falling through to the base style. */
+.dot-sync[data-s="off"]{background:transparent;box-shadow:inset 0 0 0 1.5px var(--faint)}
 .dot-sync[data-s="on"]{background:var(--good)}
 .dot-sync[data-s="err"]{background:var(--marker)}
 .dot-sync[data-s="busy"]{background:var(--muted);animation:pulse 1.1s ease-in-out infinite}
@@ -146,6 +168,10 @@ header.top{
 
 /* ─────────────────────────  layout  ───────────────────────── */
 .cols{display:grid;grid-template-columns:1fr;gap:34px;align-items:start}
+/* Grid items default to min-width:auto, so a wide child (the 31-column year
+   grid, or the view bar once the lens button joins it) makes the *column*
+   grow and the whole page scroll sideways. */
+.cols > *{min-width:0}
 @media (min-width:900px){
   .cols{grid-template-columns:minmax(320px,376px) 1fr;gap:44px}
   .col-left{position:sticky;top:22px}
@@ -226,28 +252,67 @@ header.top{
 .tg[disabled]{opacity:.4;cursor:default}
 .tg[disabled]:hover{background:none}
 
-/* mood */
-.mood{border-top:1px solid var(--rule);padding:14px 16px 15px}
-.mood-row{display:flex;align-items:center;justify-content:space-between;gap:14px}
-.mood-dots{display:flex;gap:5px}
-.md{
-  width:26px;height:26px;border-radius:50%;display:grid;place-items:center;
-  transition:transform .14s cubic-bezier(.2,.8,.2,1);
+/* ── mood ──────────────────────────────────────────────────────
+   Three channels, so it survives colour-blindness and a glance:
+   the arc gives direction, the fill gives intensity, the word names it. */
+.mood{border-top:1px solid var(--rule);padding:13px 16px 15px}
+.mood-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:9px}
+.mood-name{font-size:12.5px;font-weight:600;color:var(--ink);letter-spacing:-.004em}
+.mood-name.none{color:var(--faint);font-weight:400}
+.mood-scale{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:7px}
+.mo{
+  position:relative;aspect-ratio:1;max-height:54px;border-radius:var(--r);
+  border:1px solid var(--rule);background:transparent;display:grid;place-items:center;
+  transition:background .18s ease,border-color .18s ease,transform .12s cubic-bezier(.2,.8,.2,1);
 }
-.md i{
-  display:block;width:9px;height:9px;border-radius:50%;
-  border:1.5px solid var(--faint);background:transparent;
-  transition:background .18s ease,border-color .18s ease,transform .18s cubic-bezier(.2,.8,.2,1);
+.mo svg{width:72%;height:72%;display:block;overflow:visible}
+.mo .arc{
+  fill:none;stroke:var(--faint);stroke-width:2.1;stroke-linecap:round;
+  transition:stroke .18s ease,stroke-width .18s ease;
 }
-.md:hover i{border-color:var(--ink-2)}
-.md[aria-pressed="true"] i{background:var(--ink);border-color:var(--ink);transform:scale(1.18)}
-.mood-note{
-  margin-top:11px;width:100%;background:transparent;border:0;border-top:1px dashed var(--rule);
-  padding:10px 0 0;font-size:13.5px;color:var(--ink);resize:none;line-height:1.45;
-  min-height:34px;font-family:inherit;
+.mo:hover{border-color:var(--muted)}
+.mo:hover .arc{stroke:var(--ink-2)}
+/* --mc / --moc are set per chip in JS, so one rule covers all five steps */
+.mo[aria-checked="true"]{background:var(--mc);border-color:transparent;transform:translateY(-1px)}
+.mo[aria-checked="true"] .arc{stroke:var(--moc);stroke-width:2.7}
+.mo:active{transform:scale(.94)}
+@media (prefers-reduced-motion:reduce){ .mo,.mo .arc{transition:none} }
+
+/* ── recap ─────────────────────────────────────────────────── */
+.recap{border-top:1px solid var(--rule);padding:13px 16px 15px}
+.recap-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:7px}
+.recap textarea,.dd-sec textarea{
+  display:block;width:100%;max-width:66ch;background:transparent;border:0;padding:0;
+  resize:none;overflow:hidden;font-family:inherit;font-size:14px;line-height:1.58;
+  color:var(--ink);min-height:104px;
 }
-.mood-note::placeholder{color:var(--faint)}
-.mood-note:focus{outline:none;border-top-color:var(--muted)}
+.recap textarea::placeholder,.dd-sec textarea::placeholder{color:var(--faint)}
+.recap textarea:focus,.dd-sec textarea:focus{outline:none}
+.saved{font-size:10.5px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--faint);opacity:0;transition:opacity .25s ease}
+.saved.on{opacity:1}
+
+/* ── optional habits — quiet by construction ───────────────── */
+.extras{border-top:1px solid var(--rule)}
+.extras-toggle{
+  width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:11px 16px;font-size:12.5px;color:var(--muted);
+  transition:background .15s ease,color .15s ease;
+}
+.extras-toggle:hover{background:var(--card-2);color:var(--ink-2)}
+.extras-toggle .chev{font-size:14px;line-height:1;transition:transform .2s ease}
+.extras-toggle[aria-expanded="true"] .chev{transform:rotate(45deg)}
+.extras-body{padding:2px 16px 14px;display:flex;flex-wrap:wrap;gap:7px}
+.xchip{
+  display:inline-flex;align-items:center;gap:7px;padding:7px 12px;border-radius:15px;
+  border:1px solid var(--rule);font-size:12.5px;color:var(--muted);background:transparent;
+  transition:background .16s ease,border-color .16s ease,color .16s ease,transform .1s ease;
+}
+.xchip:hover{border-color:var(--muted);color:var(--ink-2)}
+.xchip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--paper)}
+.xchip:active{transform:scale(.96)}
+.xchip .tick{width:5px;height:5px;border-radius:50%;background:currentColor;opacity:.35}
+.xchip[aria-pressed="true"] .tick{opacity:1}
 
 .restlink{
   display:flex;align-items:center;justify-content:space-between;gap:10px;
@@ -274,7 +339,7 @@ header.top{
 .streak .meta .l2{font-size:12.5px;color:var(--muted);margin-top:1px}
 
 /* last 14 days strip */
-.recent{display:grid;grid-template-columns:repeat(14,1fr);gap:5px;margin-top:26px}
+.recent{display:grid;grid-template-columns:repeat(14,minmax(0,1fr));gap:5px;margin-top:26px}
 .recent .rd{
   aspect-ratio:1;border:1px solid var(--rule);border-radius:3px;position:relative;
   background:var(--card);
@@ -305,7 +370,7 @@ header.top{
 
 .navrow{display:flex;align-items:center;gap:4px}
 .navrow .label{
-  font-size:13px;font-weight:600;min-width:118px;text-align:center;letter-spacing:-.004em;
+  font-size:13px;font-weight:600;min-width:104px;text-align:center;letter-spacing:-.004em;
 }
 .navbtn{width:28px;height:28px;display:grid;place-items:center;border-radius:var(--r);color:var(--muted)}
 .navbtn:hover{background:var(--card-2);color:var(--ink)}
@@ -314,12 +379,12 @@ header.top{
 .navbtn svg{width:15px;height:15px}
 
 /* month grid */
-.dow{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:7px}
+.dow{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;margin-bottom:7px}
 .dow span{
   text-align:center;font-size:10px;font-weight:600;letter-spacing:.1em;
   text-transform:uppercase;color:var(--faint);
 }
-.mgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.mgrid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
 .cell{
   position:relative;aspect-ratio:1;border:1px solid var(--rule);border-radius:var(--r);
   background:var(--card);display:grid;place-items:center;overflow:hidden;
@@ -350,9 +415,9 @@ header.top{
 /* year / all: 12 month rows */
 .yr{display:flex;flex-direction:column;gap:9px}
 .yr-year{font-size:12px;font-weight:600;color:var(--muted);letter-spacing:.02em;margin:14px 0 2px}
-.yr-row{display:grid;grid-template-columns:30px 1fr;gap:9px;align-items:center}
+.yr-row{display:grid;grid-template-columns:30px minmax(0,1fr);gap:9px;align-items:center}
 .yr-row .m{font-size:10px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--faint)}
-.yr-days{display:grid;grid-template-columns:repeat(31,1fr);gap:2.5px}
+.yr-days{display:grid;grid-template-columns:repeat(31,minmax(0,1fr));gap:2.5px}
 .yd{
   aspect-ratio:1;border-radius:2px;background:var(--rule-2);position:relative;overflow:visible;
   transition:transform .12s ease;
@@ -362,10 +427,58 @@ header.top{
 .yd.rest{background:transparent;box-shadow:inset 0 0 0 1.5px var(--rule)}
 .yd.today{box-shadow:0 0 0 1.5px var(--ink)}
 .yd.ink{background:transparent}
+.yd.lens{box-shadow:inset 0 0 0 1px rgba(128,128,128,.16)}   /* relief for the palest step */
 .yd svg{position:absolute;inset:-1px;width:calc(100% + 2px);height:calc(100% + 2px);overflow:visible}
 .yd svg line{stroke:var(--marker);stroke-width:1.7;stroke-linecap:round;vector-effect:non-scaling-stroke;opacity:.32}
 .yd svg.full line{opacity:1}
 .yd:hover{transform:scale(1.45);z-index:2}
+
+/* mood lens toggle — the year grid, read two ways */
+.lens{
+  padding:5px 12px;border:1px solid var(--rule);border-radius:var(--r);
+  font-size:12px;font-weight:500;color:var(--muted);background:var(--card);
+  transition:background .16s ease,color .16s ease,border-color .16s ease;
+}
+.lens:hover{color:var(--ink)}
+.lens[aria-pressed="true"]{background:var(--mood-4);border-color:var(--mood-4);color:var(--mood-on-4)}
+
+/* ── log ───────────────────────────────────────────────────── */
+.log{display:flex;flex-direction:column;gap:2px}
+.log-cap{font-size:11px;color:var(--faint);letter-spacing:.01em;padding-bottom:10px}
+.le{
+  display:grid;grid-template-columns:64px 1fr;gap:14px;
+  padding:14px 0;border-top:1px solid var(--rule-2);
+}
+.le:first-child{border-top:0}
+.le-when{padding-top:1px}
+.le-d{font-family:var(--f-num);font-variation-settings:'opsz' 60;font-weight:400;
+  font-size:19px;line-height:1;color:var(--ink)}
+.le-w{font-size:10px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--faint);margin-top:4px}
+.le-marks{display:flex;align-items:center;gap:7px;margin-bottom:6px;flex-wrap:wrap}
+.le-x{width:15px;height:15px;overflow:visible;flex:none}
+.le-x line{stroke:var(--marker);stroke-width:2.4;stroke-linecap:round;vector-effect:non-scaling-stroke}
+.le-x.half line{opacity:.38}
+.le-tag{font-size:11px;font-weight:600;letter-spacing:.02em;color:var(--muted)}
+.le-mood{
+  display:inline-flex;align-items:center;gap:5px;padding:2px 8px 2px 5px;border-radius:11px;
+  background:var(--mc);color:var(--moc);font-size:11px;font-weight:600;
+}
+.le-mood svg{width:12px;height:12px;overflow:visible}
+.le-mood .arc{fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round}
+.le-text{font-size:13.5px;line-height:1.6;color:var(--ink-2);max-width:64ch;white-space:pre-wrap}
+.le-text.none{color:var(--faint);font-style:italic}
+.le-x-list{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.le-x-list span{
+  font-size:10.5px;color:var(--muted);border:1px solid var(--rule);
+  border-radius:10px;padding:2px 8px;
+}
+.log-more{
+  margin-top:16px;font-size:12px;color:var(--muted);text-align:center;
+  padding:10px;border:1px dashed var(--rule);border-radius:var(--r);
+}
+.sec-right{display:flex;align-items:center;gap:12px}
+.btn.tiny{padding:5px 11px;font-size:11.5px;font-weight:600;border-radius:var(--r)}
 
 /* tooltip */
 .tip{
@@ -386,8 +499,8 @@ header.top{
 .section-h h2{margin:0;font-size:13px;font-weight:600;letter-spacing:-.004em}
 .section-h .note{font-size:11.5px;color:var(--faint)}
 
-.tiles{display:grid;grid-template-columns:repeat(2,1fr);gap:9px}
-@media(min-width:560px){.tiles{grid-template-columns:repeat(4,1fr)}}
+.tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+@media(min-width:560px){.tiles{grid-template-columns:repeat(4,minmax(0,1fr))}}
 .tile{
   background:var(--card);border:1px solid var(--rule);border-radius:var(--r);
   padding:13px 14px 12px;
@@ -412,7 +525,7 @@ header.top{
 .panel .cap b{color:var(--ink-2);font-weight:600}
 
 /* weekday bars */
-.wd{display:grid;grid-template-columns:repeat(7,1fr);gap:7px;align-items:end;height:74px}
+.wd{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:7px;align-items:end;height:74px}
 .wd .b{display:flex;flex-direction:column;justify-content:flex-end;height:100%;gap:6px}
 .wd .b i{
   display:block;width:100%;background:var(--marker);border-radius:3px 3px 0 0;min-height:2px;
@@ -420,7 +533,7 @@ header.top{
 }
 .wd .b i.lo{background:var(--rule)}
 .wd .b span{font-size:9.5px;font-weight:600;letter-spacing:.06em;color:var(--faint);text-align:center}
-.wd-axis{display:grid;grid-template-columns:repeat(7,1fr);gap:7px;margin-top:5px}
+.wd-axis{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:7px;margin-top:5px}
 .wd-axis span{font-size:9.5px;font-weight:600;letter-spacing:.06em;color:var(--faint);text-align:center;text-transform:uppercase}
 
 /* mood compare */
@@ -489,6 +602,13 @@ header.top{
 .field textarea{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px;line-height:1.5;min-height:80px;resize:vertical}
 .field input:focus,.field textarea:focus{outline:none;border-color:var(--muted)}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.xrow{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;margin-bottom:7px}
+.xrow input{width:100%;background:var(--paper);border:1px solid var(--rule);border-radius:var(--r);
+  padding:8px 10px;font-size:13px;font-family:var(--f-ui)}
+.xrow input:focus{outline:none;border-color:var(--muted)}
+.xrow button{width:30px;height:30px;display:grid;place-items:center;border-radius:var(--r);
+  color:var(--faint);font-size:15px;line-height:1}
+.xrow button:hover{background:var(--card-2);color:var(--marker)}
 
 .btn{
   display:inline-flex;align-items:center;justify-content:center;gap:7px;
@@ -520,6 +640,9 @@ header.top{
 .status-msg.dim{color:var(--faint)}
 
 /* day detail */
+.dd-sec{border-top:1px solid var(--rule-2);padding-top:14px;margin-top:15px}
+.dd-sec:first-of-type{border-top:0;padding-top:0;margin-top:12px}
+.dd-locked{font-size:12.5px;color:var(--faint);line-height:1.55;margin-top:14px}
 .dd-x{display:grid;place-items:center;padding:6px 0 14px}
 .dd-x svg{width:96px;height:96px;overflow:visible}
 .dd-x svg line{stroke:var(--marker);stroke-width:5.5;stroke-linecap:round;filter:url(#roughen)}
@@ -621,11 +744,27 @@ footer.f button:hover{color:var(--ink)}
         </div>
 
         <div class="mood">
-          <div class="mood-row">
+          <div class="mood-head">
             <span class="eyebrow">Mood</span>
-            <div class="mood-dots" id="moodDots" role="group" aria-label="Mood, 1 to 5"></div>
+            <span class="mood-name none" id="moodName">Not logged</span>
           </div>
-          <textarea class="mood-note" id="moodNote" rows="1" maxlength="240" placeholder="One line about today…"></textarea>
+          <div class="mood-scale" id="moodScale" role="radiogroup" aria-label="Mood"></div>
+        </div>
+
+        <div class="recap">
+          <div class="recap-head">
+            <span class="eyebrow">Recap</span>
+            <span class="saved" id="recapSaved">Saved</span>
+          </div>
+          <textarea id="recap" maxlength="4000" aria-label="Recap for today"></textarea>
+        </div>
+
+        <div class="extras">
+          <button class="extras-toggle" id="extrasToggle" aria-expanded="false" aria-controls="extrasBody">
+            <span id="extrasSummary">Anything else today?</span>
+            <span class="chev" aria-hidden="true">+</span>
+          </button>
+          <div class="extras-body" id="extrasBody" hidden></div>
         </div>
 
         <button class="restlink" id="btnRest" aria-pressed="false">
@@ -653,7 +792,9 @@ footer.f button:hover{color:var(--ink)}
           <button role="tab" id="vMonth" aria-selected="true">Month</button>
           <button role="tab" id="vYear" aria-selected="false">Year</button>
           <button role="tab" id="vAll" aria-selected="false">All time</button>
+          <button role="tab" id="vLog" aria-selected="false">Log</button>
         </div>
+        <button class="lens" id="lensToggle" aria-pressed="false" hidden>Mood</button>
         <div class="navrow" id="navRow">
           <button class="navbtn" id="navPrev" aria-label="Previous"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
           <span class="label tnum" id="navLabel"></span>
@@ -666,10 +807,15 @@ footer.f button:hover{color:var(--ink)}
         <div class="mgrid" id="mgrid"></div>
       </div>
       <div id="calYear" class="yr" hidden></div>
+      <div id="calLog" class="log" hidden></div>
 
       <div class="section-h">
-        <h2>Stats</h2>
-        <span class="note" id="statsScope"></span>
+        <h2>Review</h2>
+        <span class="sec-right">
+          <span class="note" id="statsScope"></span>
+          <button class="btn tiny" id="btnDigestWeek" title="Copy the last 7 days, with a prompt, ready to paste into Claude">Copy week</button>
+          <button class="btn tiny" id="btnDigest" title="Copy the period you're viewing, with a prompt, ready to paste into Claude">Copy period</button>
+        </span>
       </div>
 
       <div class="tiles">
@@ -712,6 +858,11 @@ footer.f button:hover{color:var(--ink)}
           <div class="cap" id="sparkCap">Daily mood, 1–5.</div>
           <svg class="spark" id="moodSpark" preserveAspectRatio="none" aria-hidden="true"></svg>
           <div class="empty" id="sparkEmpty" hidden>Log a few days of mood and the trend shows up here.</div>
+        </div>
+        <div class="panel" id="extrasPanel" hidden>
+          <h3>What moves the needle</h3>
+          <div class="cap" id="extrasCap">Full-X rate on the days you did each thing, against the days you didn't.</div>
+          <div class="cmp" id="extrasCmp"></div>
         </div>
         <div class="panel">
           <h3>The long view</h3>
@@ -789,6 +940,16 @@ footer.f button:hover{color:var(--ink)}
     </div>
 
     <div style="height:6px"></div>
+    <span class="eyebrow">Optional habits</span>
+    <div style="height:4px"></div>
+    <div style="font-size:11.5px;color:var(--faint);line-height:1.45;margin-bottom:9px">
+      Logged if you feel like it. They never affect the chain — they're here so you can find out
+      what actually correlates with a good day.
+    </div>
+    <div id="xEditor"></div>
+    <div class="btnrow"><button class="btn" id="btnAddExtra">Add a habit</button></div>
+
+    <div style="height:20px"></div>
     <span class="eyebrow">Data</span>
     <div style="height:10px"></div>
     <div class="btnrow">
@@ -857,10 +1018,21 @@ function bootstrapFromHash(){
   history.replaceState(null, '', location.pathname + location.search);
   return { key: k || '', url: u || '' };
 }
+/* Optional habits, shipped as defaults and editable in Settings. Values live
+   in the day's `x` object as plain booleans today; the shape takes
+   {n: 5} or {at: "23:15"} later without a migration. */
+const DEFAULT_EXTRAS = [
+  { id:'meditate', label:'Meditation' },
+  { id:'water',    label:'Water' },
+  { id:'bed',      label:'Bed on time' },
+  { id:'read',     label:'Reading' },
+  { id:'friends',  label:'Friends / fun' }
+];
 const DEFAULTS = {
   days: {},                 // "YYYY-MM-DD" -> {w,c,r,m,n,u}
   start: null,              // first ever logged day
-  cfg: { backfill:3, restPerMonth:4, notif:false, notifTime:'17:00', theme:'system' },
+  cfg: { backfill:3, restPerMonth:4, notif:false, notifTime:'17:00', theme:'system',
+         extras: DEFAULT_EXTRAS.map(e => Object.assign({}, e)) },
   sync: { url:PRESET.url, key:PRESET.key },
   meta: { lastNudge:'', lastPull:0 }
 };
@@ -891,10 +1063,57 @@ function save(){
   }, 60);
 }
 
-const blank = () => ({ w:false, c:false, r:false, m:null, n:'', u:0 });
+/* ── the shape of a day, declared exactly once ──────────────────
+   blank(), isEmpty(), the sync push and the sync pull are all derived
+   from this table. They used to be four independent lists: the pull
+   asked the server for `select=*` and then rebuilt a hand-written
+   literal, so any column missing from that one line was fetched and
+   silently thrown away while the push never sent it. A new field looked
+   like it worked — until a second device disagreed. Add a row here and
+   every path learns it at once.
+
+     def      value on a fresh record
+     empty    is this field's value "nothing"? (all empty ⇒ delete the day)
+     fromRow  coerce whatever the database hands back, including
+              undefined from a row written by an older client */
+const DAY_FIELDS = {
+  w: { def:false, empty:v => !v,                fromRow:v => !!v },
+  c: { def:false, empty:v => !v,                fromRow:v => !!v },
+  r: { def:false, empty:v => !v,                fromRow:v => !!v },
+  m: { def:null,  empty:v => v == null,         fromRow:v => v == null ? null : Number(v) },
+  n: { def:'',    empty:v => !(v || '').trim(), fromRow:v => v || '' },
+  x: { def:{},    empty:v => !v || !Object.values(v).some(Boolean),
+                  fromRow:v => (v && typeof v === 'object' && !Array.isArray(v)) ? v : {} }
+};
+const DAY_KEYS = Object.keys(DAY_FIELDS);
+const defOf = f => { const d = DAY_FIELDS[f].def; return (d && typeof d === 'object') ? JSON.parse(JSON.stringify(d)) : d; };
+
+const blank = () => { const r = { u:0 }; for(const f of DAY_KEYS) r[f] = defOf(f); return r; };
 const get = k => S.days[k] || null;
 function ensure(k){ if(!S.days[k]) S.days[k] = blank(); return S.days[k]; }
-function isEmpty(r){ return !r || (!r.w && !r.c && !r.r && r.m == null && !(r.n||'').trim()); }
+function isEmpty(r){ return !r || DAY_KEYS.every(f => DAY_FIELDS[f].empty(r[f])); }
+
+/* Wire shapes. Both directions go through these, so they cannot drift. */
+function toRow(k, r){
+  const row = { d:k, u:(r && r.u) || Date.now() };
+  /* `undefined` is not "the value undefined" on the wire — JSON.stringify
+     drops the key entirely. A record saved by an older version of the app
+     has no `x`, so without this fallback its row would go up a key short,
+     and PostgREST rejects a bulk upsert whose rows disagree about columns.
+     One legacy day would then wedge the whole queue on first sync. */
+  for(const f of DAY_KEYS) row[f] = (r && r[f] !== undefined) ? r[f] : defOf(f);
+  return row;                       // every row in a batch has identical keys
+}
+function fromRow(row){
+  const rec = { u:Number(row.u) || 0 };
+  for(const f of DAY_KEYS) rec[f] = DAY_FIELDS[f].fromRow(row[f]);
+  return rec;
+}
+
+/* The chain starts the first day you marked something on it. A recap, a
+   mood or an optional habit is journal, not chain — it must not drag the
+   start date backwards and manufacture months of "missed" days. */
+const isChainLogged = r => !!(r && (r.w || r.c || r.r));
 
 /* full > rest > half > none */
 function stateOf(k){
@@ -910,18 +1129,28 @@ const todayKey = () => key(TODAY());
 
 function firstDay(){
   if(S.start) return parseKey(S.start);
-  const ks = Object.keys(S.days).filter(k => !isEmpty(S.days[k])).sort();
+  const ks = Object.keys(S.days).filter(k => isChainLogged(S.days[k])).sort();
   return ks.length ? parseKey(ks[0]) : TODAY();
 }
-function touchStart(k){
+function touchStart(k, r){
+  if(!isChainLogged(r || S.days[k])) return;
   if(!S.start || k < S.start) S.start = k;
 }
 
 /* ── writes ───────────────────────────────────────────────────── */
-function editable(k){
+/* Two different locks, deliberately.
+   The chain locks after the backfill window — that's the accountability,
+   and it's the whole point of the thing. The journal never locks: a recap
+   you write on Sunday about last Tuesday is exactly the material you're
+   keeping this for, and refusing it buys no honesty. */
+function chainEditable(k){
   const diff = daysBetween(parseKey(k), TODAY());
   return diff >= 0 && diff <= (S.cfg.backfill|0);
 }
+function journalEditable(k){
+  return daysBetween(parseKey(k), TODAY()) >= 0;      // anything but the future
+}
+const editable = chainEditable;   // back-compat for existing call sites
 function restUsed(y, m){
   let n = 0;
   for(const k in S.days){
@@ -934,7 +1163,7 @@ function mutate(k, fn){
   const r = ensure(k);
   fn(r);
   r.u = Date.now();
-  if(isEmpty(r)) delete S.days[k]; else touchStart(k);
+  if(isEmpty(r)) delete S.days[k]; else touchStart(k, r);
   save(); queuePush(k); renderAll();
 }
 
@@ -1003,15 +1232,21 @@ let view = 'month';
 let cursor = TODAY();       // month being viewed
 let yearCursor = new Date().getFullYear();
 
-function renderAll(){ renderToday(); renderStreak(); renderRecent(); renderCal(); renderStats(); renderNotice(); }
+function renderAll(){
+  renderToday(); renderStreak(); renderRecent(); renderCal(); renderStats(); renderNotice();
+  if(modalOpen === 'mDay' && repaintDay) repaintDay();
+}
 
 function renderNotice(){
-  const n = $('notice');
-  /* Opened from a file? The footer already explains it — don't nag twice. */
-  const connected = !!(S.sync.url && S.sync.key);
-  n.hidden = FILE_MODE || connected;
-  if(!n.hidden) $('noticeText').textContent =
-    'This device isn’t syncing yet — anything you log stays here.';
+  const n = $('notice'), st = syncState();
+  /* Only two states are worth a banner: never configured, and broken.
+     'pending' and 'ok' stay silent; file mode is explained in the footer. */
+  n.hidden = (st !== 'local' && st !== 'error');
+  if(n.hidden) return;
+  $('noticeText').textContent = st === 'error'
+    ? 'Can’t reach the database — today is saved here and will sync when it’s back.'
+    : 'This device isn’t syncing yet — anything you log stays here.';
+  $('noticeAction').textContent = st === 'error' ? 'Details' : 'Connect this device';
 }
 
 function renderRecent(){
@@ -1030,6 +1265,119 @@ function renderRecent(){
   }
   $('recent').innerHTML = html;
   $('recentCap').textContent = `Last 14 days — ${full} full ${full === 1 ? 'X' : 'X’s'}`;
+}
+
+/* ═══════════ shared day-input components ═══════════
+   One implementation of each, mounted by both the today card and the day
+   sheet — they used to be two divergent copies. `getKey` is always a
+   function, never a captured string, so a component mounted before
+   midnight still writes to the right day afterwards. */
+
+/* The arc is the valence: a mouth bending from frown to smile, drawn in
+   the same stroke vocabulary as the X. Colour carries intensity, the arc
+   carries direction, the word names it — three channels, so it reads at a
+   glance and survives colour-blindness. */
+const MOODS = [
+  { v:1, name:'Rough', d:'M5 17.9 Q12 8.6 19 17.9' },
+  { v:2, name:'Low',   d:'M5 16.2 Q12 12.7 19 16.2' },
+  { v:3, name:'Fine',  d:'M5 14.5 L19 14.5' },
+  { v:4, name:'Good',  d:'M5 12.7 Q12 17.3 19 12.7' },
+  { v:5, name:'Great', d:'M5 10.6 Q12 20.8 19 10.6' }
+];
+const moodName = v => (MOODS.find(m => m.v === v) || {}).name || '';
+
+function mountMood(host, getKey, nameEl){
+  if(!host.dataset.built){
+    host.innerHTML = '';
+    for(const m of MOODS){
+      const b = document.createElement('button');
+      b.className = 'mo'; b.type = 'button'; b.dataset.m = m.v;
+      b.setAttribute('role', 'radio');
+      b.setAttribute('aria-checked', 'false');
+      b.setAttribute('aria-label', `${m.name} — ${m.v} of 5`);
+      b.style.setProperty('--mc', `var(--mood-${m.v})`);
+      b.style.setProperty('--moc', `var(--mood-on-${m.v})`);
+      b.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true"><path class="arc" d="${m.d}"/></svg>`;
+      b.onclick = () => mutate(getKey(), x => { x.m = (x.m === m.v ? null : m.v); });
+      host.appendChild(b);
+    }
+    host.dataset.built = '1';
+  }
+  const r = get(getKey()), v = r ? r.m : null;
+  [...host.children].forEach(b => b.setAttribute('aria-checked', String(Number(b.dataset.m) === v)));
+  if(nameEl){
+    nameEl.textContent = v ? moodName(v) : 'Not logged';
+    nameEl.classList.toggle('none', !v);
+  }
+}
+
+const RECAP_PROMPTS = [
+  'What actually happened today?',
+  'What got in the way?',
+  'What made it easy?',
+  'Why did today go the way it did?',
+  'What would you tell yourself tomorrow morning?'
+];
+function autoGrow(el){ el.style.height = 'auto'; el.style.height = Math.max(el.scrollHeight, 104) + 'px'; }
+
+function mountRecap(el, getKey, savedEl){
+  if(!el.dataset.built){
+    el.placeholder = RECAP_PROMPTS[Math.floor(Math.random() * RECAP_PROMPTS.length)];
+    const commit = () => {
+      const v = el.value, k = getKey(), cur = get(k);
+      if((cur ? cur.n : '') === v) return;
+      mutate(k, x => x.n = v);
+      if(savedEl){
+        savedEl.classList.add('on');
+        clearTimeout(el._s);
+        el._s = setTimeout(() => savedEl.classList.remove('on'), 1600);
+      }
+    };
+    el.addEventListener('input', () => {
+      autoGrow(el);
+      clearTimeout(el._t);
+      el._t = setTimeout(commit, 600);
+    });
+    el.addEventListener('blur', () => { clearTimeout(el._t); commit(); });
+    el.dataset.built = '1';
+  }
+  /* Don't stomp what's being typed — mutate() re-renders on every keystroke. */
+  if(document.activeElement !== el){
+    const r = get(getKey());
+    el.value = r ? (r.n || '') : '';
+    autoGrow(el);
+  }
+}
+
+/* Optional habits. They never touch stateOf(), the streak, or any
+   "incomplete" styling — an unlogged extra renders as nothing at all. */
+const extraList = () => (S.cfg.extras && S.cfg.extras.length) ? S.cfg.extras : DEFAULT_EXTRAS;
+
+function mountExtras(host, getKey){
+  const list = extraList(), sig = list.map(e => e.id + ':' + e.label).join('|');
+  if(host.dataset.sig !== sig){
+    host.innerHTML = '';
+    for(const e of list){
+      const b = document.createElement('button');
+      b.className = 'xchip'; b.type = 'button'; b.dataset.x = e.id;
+      b.setAttribute('aria-pressed', 'false');
+      b.innerHTML = `<span class="tick" aria-hidden="true"></span>${escapeHtml(e.label)}`;
+      b.onclick = () => mutate(getKey(), d => {
+        const nx = Object.assign({}, d.x);
+        if(nx[e.id]) delete nx[e.id]; else nx[e.id] = true;
+        d.x = nx;
+      });
+      host.appendChild(b);
+    }
+    host.dataset.sig = sig;
+  }
+  const r = get(getKey()), on = (r && r.x) || {};
+  [...host.children].forEach(b => b.setAttribute('aria-pressed', String(!!on[b.dataset.x])));
+}
+function syncExtrasSummary(r){
+  const on = (r && r.x) || {};
+  const names = extraList().filter(e => on[e.id]).map(e => e.label);
+  $('extrasSummary').textContent = names.length ? names.join(' · ') : 'Anything else today?';
 }
 
 /* ── today card ───────────────────────────────────────────────── */
@@ -1054,22 +1402,14 @@ function renderToday(){
     st === 'half' ? (r.w ? 'Half — content left' : 'Half — workout left') :
     'Nothing yet';
 
-  // mood
-  const dots = $('moodDots');
-  if(!dots.dataset.built){
-    for(let i=1;i<=5;i++){
-      const b = document.createElement('button');
-      b.className = 'md'; b.dataset.m = i;
-      b.setAttribute('aria-label', `Mood ${i} of 5`);
-      b.innerHTML = '<i></i>';
-      b.onclick = () => mutate(k, x => { x.m = (x.m === i ? null : i); });
-      dots.appendChild(b);
-    }
-    dots.dataset.built = '1';
-  }
-  [...dots.children].forEach(b => b.setAttribute('aria-pressed', String(Number(b.dataset.m) === r.m)));
-  const note = $('moodNote');
-  if(document.activeElement !== note) note.value = r.n || '';
+  /* Mood, recap and extras all resolve their day at interaction time via
+     todayKey() rather than closing over `k`. The old build-once-and-cache
+     mood dots kept writing to whichever day was current when the page
+     first rendered — so after midnight, taps landed on yesterday. */
+  mountMood($('moodScale'), todayKey, $('moodName'));
+  mountRecap($('recap'), todayKey, $('recapSaved'));
+  mountExtras($('extrasBody'), todayKey);
+  syncExtrasSummary(r);
 
   // rest
   const used = restUsed(t.getFullYear(), t.getMonth());
@@ -1099,17 +1439,85 @@ function xLines(w, c){
   </svg>`;
 }
 
+let moodLens = false;
+
 function renderCal(){
   $('calMonth').hidden = view !== 'month';
-  $('calYear').hidden = view === 'month';
-  $('navRow').style.visibility = view === 'all' ? 'hidden' : 'visible';
+  $('calYear').hidden  = !(view === 'year' || view === 'all');
+  $('calLog').hidden   = view !== 'log';
+  $('navRow').style.visibility = (view === 'all' || view === 'log') ? 'hidden' : 'visible';
+  /* The lens only means anything on a grid of many days. */
+  $('lensToggle').hidden = !(view === 'year' || view === 'all');
+  $('lensToggle').setAttribute('aria-pressed', String(moodLens));
+
   if(view === 'month') renderMonth();
+  else if(view === 'log') renderLog();
   else if(view === 'year') renderYear([yearCursor]);
   else {
-    const y0 = firstDay().getFullYear(), y1 = new Date().getFullYear();
+    const y0 = firstDay().getFullYear(), y1 = TODAY().getFullYear();
     const ys = []; for(let y = y1; y >= y0; y--) ys.push(y);
     renderYear(ys);
   }
+}
+
+/* ── log: the writing, newest first ───────────────────────────── */
+const LOG_PAGE = 60;
+let logShown = LOG_PAGE;
+
+function moodPill(v){
+  if(!v) return '';
+  const m = MOODS.find(x => x.v === v);
+  return `<span class="le-mood" style="--mc:var(--mood-${v});--moc:var(--mood-on-${v})">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path class="arc" d="${m.d}"/></svg>${m.name}</span>`;
+}
+
+function renderLog(){
+  const { from, to } = statRange();
+  const host = $('calLog');
+  const rows = [];
+  let d = startOfDay(to);
+  const end = startOfDay(from);
+  while(d >= end){
+    const k = key(d), r = get(k);
+    if(r && (r.n || '').trim()) rows.push([k, r]);   // the log is the writing
+    d = addDays(d, -1);
+  }
+  if(!rows.length){
+    host.innerHTML = `<div class="log-more">Nothing written in this stretch yet. The recap box on the left is where it starts —
+      a line about what happened is enough to be worth reading back in a month.</div>`;
+    return;
+  }
+  const page = rows.slice(0, logShown);
+  host.innerHTML = `<div class="log-cap">${rows.length} ${rows.length === 1 ? 'entry' : 'entries'} — only days you wrote something</div>` +
+    page.map(([k, r]) => {
+    const dt = parseKey(k), st = stateOf(k);
+    const on = extraList().filter(e => r.x && r.x[e.id]).map(e => e.label);
+    const tag = st === 'full' ? '' : st === 'rest' ? 'Rest day'
+      : st === 'half' ? (r.w ? 'Workout only' : 'Content only') : 'No marks';
+    return `<article class="le">
+      <div class="le-when">
+        <div class="le-d tnum">${MON3[dt.getMonth()]} ${dt.getDate()}</div>
+        <div class="le-w">${DOW[dt.getDay()].slice(0,3)}</div>
+      </div>
+      <div>
+        <div class="le-marks">
+          <svg class="le-x${st === 'half' ? ' half' : ''}" viewBox="0 0 20 20" aria-hidden="true">
+            ${r.w ? '<line x1="3" y1="3" x2="17" y2="17"/>' : ''}
+            ${r.c ? '<line x1="17" y1="3" x2="3" y2="17"/>' : ''}
+          </svg>
+          ${tag ? `<span class="le-tag">${tag}</span>` : ''}
+          ${moodPill(r.m)}
+        </div>
+        <div class="le-text">${escapeHtml(r.n)}</div>
+        ${on.length ? `<div class="le-x-list">${on.map(l => `<span>${escapeHtml(l)}</span>`).join('')}</div>` : ''}
+      </div>
+    </article>`;
+  }).join('') +
+  (rows.length > logShown
+    ? `<button class="log-more" id="logMore">Show ${Math.min(LOG_PAGE, rows.length - logShown)} more of ${rows.length}</button>`
+    : '');
+  const more = $('logMore');
+  if(more) more.onclick = () => { logShown += LOG_PAGE; renderLog(); };
 }
 
 function renderMonth(){
@@ -1160,8 +1568,16 @@ function renderYear(years){
         if(st === 'rest') cls.push('rest');
         if(k === tk) cls.push('today');
         if(r && (r.w || r.c)) cls.push('ink');
-        const lines = (r && (r.w || r.c)) ? `<svg viewBox="0 0 10 10" class="${r.w&&r.c?'full':''}">${r.w?'<line x1="1.6" y1="1.6" x2="8.4" y2="8.4"/>':''}${r.c?'<line x1="8.4" y1="1.6" x2="1.6" y2="8.4"/>':''}</svg>` : '';
-        cells += `<div class="${cls.join(' ')}" data-k="${k}" tabindex="-1">${lines}</div>`;
+        let inner = '', style = '';
+        if(moodLens){
+          /* Same grid, different question. Sequential ramp, so the year reads
+             as intensity rather than as five competing hues. */
+          cls.push('lens');
+          if(r && r.m) style = ` style="background:var(--mood-${r.m})"`;
+        } else {
+          inner = (r && (r.w || r.c)) ? `<svg viewBox="0 0 10 10" class="${r.w&&r.c?'full':''}">${r.w?'<line x1="1.6" y1="1.6" x2="8.4" y2="8.4"/>':''}${r.c?'<line x1="8.4" y1="1.6" x2="1.6" y2="8.4"/>':''}</svg>` : '';
+        }
+        cells += `<div class="${cls.join(' ')}" data-k="${k}"${style} tabindex="-1">${inner}</div>`;
       }
       html += `<div class="yr-row"><span class="m">${MON3[m]}</span><div class="yr-days">${cells}</div></div>`;
     }
@@ -1208,6 +1624,7 @@ function statRange(){
     const to = last > t ? t : last;
     return { from: from < firstDay() ? firstDay() : from, to, label: String(yearCursor) };
   }
+  if(view === 'log') return { from: firstDay(), to: t, label: 'Everything you\u2019ve written' };
   return { from: firstDay(), to: t, label: 'All time' };
 }
 
@@ -1219,7 +1636,7 @@ function renderStats(){
     $('moodCap').textContent = 'Nothing logged in this range yet.';
     $('moodCmp').innerHTML = ''; $('wdBars').innerHTML = ''; $('wdAxis').innerHTML = '';
     $('moodSpark').innerHTML = ''; $('sparkEmpty').hidden = false;
-    $('longView').innerHTML = '';
+    $('longView').innerHTML = ''; $('extrasPanel').hidden = true;
     return;
   }
   const s = rangeStats(from, to);
@@ -1269,6 +1686,32 @@ function renderStats(){
 
   /* mood spark, last 60d */
   drawSpark();
+
+  /* what moves the needle — same numbers the digest reports */
+  const rv = buildReview(from, to);
+  const ep = $('extrasPanel');
+  if(!rv.signals.length){
+    ep.hidden = true;
+  } else {
+    ep.hidden = false;
+    $('extrasCmp').innerHTML = rv.signals.map(g => `
+      <div class="row" style="grid-template-columns:96px 1fr 62px">
+        <span class="l">${escapeHtml(g.label)}</span>
+        <span class="t"><i class="a" style="width:${g.withRate}%"></i></span>
+        <span class="v">${g.withRate}%</span>
+      </div>
+      <div class="row" style="grid-template-columns:96px 1fr 62px;margin-top:-4px">
+        <span class="l" style="color:var(--faint)">without</span>
+        <span class="t"><i class="b" style="width:${g.withoutRate}%"></i></span>
+        <span class="v" style="color:var(--muted)">${g.withoutRate}%</span>
+      </div>`).join('');
+    const top = rv.signals[0];
+    $('extrasCap').innerHTML = Math.abs(top.gap) < 6
+      ? `Nothing here separates a good day from a bad one yet. Keep logging.`
+      : `On days you did <b>${escapeHtml(top.label)}</b> you hit the full X
+         <b>${Math.abs(top.gap)} points ${top.gap > 0 ? 'more' : 'less'}</b> often.
+         Correlation, not cause — you chose those days.`;
+  }
 
   /* long view */
   const all = rangeStats(firstDay(), TODAY());
@@ -1359,39 +1802,217 @@ function drawSpark(){
   $('sparkCap').innerHTML = `7-day average, currently <b>${lastPt ? lastPt[1].toFixed(1) : avg.toFixed(1)}</b>.${trend}`;
 }
 
+/* ═══════════════ review ═══════════════
+   One structured object describing a period. The clipboard digest renders
+   it as markdown today; when the in-app recap cards land they render the
+   same object, so that becomes a view change and nothing else. */
+function buildReview(from, to){
+  const s = rangeStats(from, to);
+  const DOWS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+
+  const entries = [];
+  const extras = extraList().map(e => ({ id:e.id, label:e.label, onFull:0, onN:0, offFull:0, offN:0 }));
+  let d = startOfDay(from); const end = startOfDay(to);
+  while(d <= end){
+    const k = key(d), r = get(k), st = stateOf(k);
+    if(r){
+      if((r.n || '').trim() || r.m || (r.x && Object.keys(r.x).length))
+        entries.push({ date:k, weekday:DOW[d.getDay()], state:st, w:!!r.w, c:!!r.c,
+                       mood:r.m || null, moodName:moodName(r.m),
+                       extras:extraList().filter(e => r.x && r.x[e.id]).map(e => e.label),
+                       recap:(r.n || '').trim() });
+    }
+    if(st !== 'rest'){
+      for(const e of extras){
+        const did = !!(r && r.x && r.x[e.id]);
+        if(did){ e.onN++; if(st === 'full') e.onFull++; }
+        else   { e.offN++; if(st === 'full') e.offFull++; }
+      }
+    }
+    d = addDays(d, 1);
+  }
+
+  /* Only report a split once both sides have enough days to mean anything —
+     a 100% rate off two observations is noise wearing a number's clothes. */
+  const MIN = 8;
+  const signals = extras
+    .filter(e => e.onN >= MIN && e.offN >= MIN)
+    .map(e => ({ label:e.label, withRate:pct(e.onFull, e.onN), withoutRate:pct(e.offFull, e.offN),
+                 withN:e.onN, withoutN:e.offN, gap:pct(e.onFull, e.onN) - pct(e.offFull, e.offN) }))
+    .sort((a,b) => Math.abs(b.gap) - Math.abs(a.gap));
+
+  const byDow = s.byDow.map((b,i) => ({ day:DOWS[i], rate:pct(b.f, b.n), n:b.n }));
+  const scored = byDow.filter(b => b.n >= 2);
+
+  return {
+    from:key(startOfDay(from)), to:key(startOfDay(to)), days:s.n,
+    full:s.full, half:s.half, rest:s.rest, missed:s.miss,
+    fullRate:pct(s.full, s.den), workoutRate:pct(s.w, s.den), contentRate:pct(s.c, s.den),
+    currentStreak:currentStreak(), longestStreak:longestStreak(),
+    moodOnFull:mean(s.moodFull), moodOther:mean(s.moodOther),
+    moodLogged:s.moodFull.length + s.moodOther.length,
+    byDow,
+    best:scored.slice().sort((a,b) => b.rate - a.rate)[0] || null,
+    worst:scored.slice().sort((a,b) => a.rate - b.rate)[0] || null,
+    signals, entries
+  };
+}
+
+/* The prompt matters as much as the data — it's what turns a table into
+   the recap Alex actually wants back. */
+function digestMarkdown(rv, label){
+  const n = v => v == null ? '—' : v.toFixed(1);
+  const L = [];
+  L.push(`I track two daily habits — a workout and publishing one piece of content. A day only
+counts as a "full X" if I did both. Below is my log for ${label.toLowerCase()}.
+
+Read it and give me back:
+1. **What actually happened** — two or three sentences, plain and specific, no cheerleading.
+2. **Why the chain held or broke** — the recurring reasons, quoted from my own recaps where
+   you can. Say which are inside my control and which aren't.
+3. **What to change next period** — at most three concrete, testable changes, each tied to
+   something in the data. If a habit or a day of the week is clearly the weak point, say so.
+4. **What to watch for** — the early signal that this is about to slip again.
+
+Be direct. If the data is too thin to support a claim, say that instead of inventing one.
+
+---
+`);
+  L.push(`## ${label} · ${rv.from} to ${rv.to}\n`);
+  L.push(`- Days tracked: ${rv.days}`);
+  L.push(`- Full X: ${rv.full} (${rv.fullRate}% of non-rest days)`);
+  L.push(`- Half days: ${rv.half} · Missed: ${rv.missed} · Rest: ${rv.rest}`);
+  L.push(`- Workout ${rv.workoutRate}% · Content ${rv.contentRate}%`);
+  L.push(`- Current chain: ${rv.currentStreak} days · longest ever: ${rv.longestStreak}`);
+  if(rv.moodLogged) L.push(`- Mood: ${n(rv.moodOnFull)} on full-X days vs ${n(rv.moodOther)} otherwise (${rv.moodLogged} logged, 1–5)`);
+  if(rv.best && rv.worst && rv.best.day !== rv.worst.day)
+    L.push(`- Strongest ${rv.best.day} (${rv.best.rate}%) · weakest ${rv.worst.day} (${rv.worst.rate}%)`);
+  L.push('');
+  L.push(`### By weekday\n`);
+  L.push('| Day | Full-X rate | Days |');
+  L.push('|---|---|---|');
+  for(const b of rv.byDow) L.push(`| ${b.day} | ${b.n ? b.rate + '%' : '—'} | ${b.n} |`);
+  L.push('');
+  if(rv.signals.length){
+    L.push(`### Optional habits\n`);
+    L.push('These are things I log but that never affect the chain. Rate = share of days I hit the full X.\n');
+    L.push('| Habit | With it | Without it | Gap |');
+    L.push('|---|---|---|---|');
+    for(const g of rv.signals)
+      L.push(`| ${g.label} | ${g.withRate}% (${g.withN}d) | ${g.withoutRate}% (${g.withoutN}d) | ${g.gap > 0 ? '+' : ''}${g.gap} |`);
+    L.push('\n_Correlation only — I picked these days, nothing was randomised._\n');
+  }
+  if(rv.entries.length){
+    L.push(`### The daily log\n`);
+    for(const e of rv.entries){
+      const marks = e.state === 'full' ? 'FULL X' : e.state === 'rest' ? 'rest day'
+        : e.state === 'half' ? (e.w ? 'workout only' : 'content only') : 'no marks';
+      const bits = [marks];
+      if(e.moodName) bits.push(`mood ${e.mood}/5 ${e.moodName}`);
+      if(e.extras.length) bits.push(e.extras.join(', '));
+      L.push(`**${e.date} ${e.weekday}** — ${bits.join(' · ')}`);
+      if(e.recap) L.push(`> ${e.recap.replace(/\n+/g, '\n> ')}`);
+      L.push('');
+    }
+  }
+  return L.join('\n');
+}
+
+async function copyDigest(scope){
+  /* "week" is its own thing because a weekly review is the cadence that
+     actually catches a slip, and the timespan tabs don't go that fine. */
+  const t = TODAY();
+  const { from, to, label } = scope === 'week'
+    ? { from: addDays(t, -6), to: t, label: 'The last 7 days' }
+    : statRange();
+  const rv = buildReview(from, to);
+  const md = digestMarkdown(rv, label);
+  try{
+    await navigator.clipboard.writeText(md);
+    toast(`Copied ${rv.days} days — paste it into Claude.`);
+  }catch(e){
+    /* Clipboard needs a secure context and a real gesture; fall back to a file
+       rather than losing the work. */
+    const blob = new Blob([md], {type:'text/markdown'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `chain-review-${rv.from}-to-${rv.to}.md`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+    toast('Clipboard blocked — downloaded it instead.');
+  }
+}
+
 /* ═══════════════ day modal ═══════════════ */
-let openKey = null;
+let openKey = null, repaintDay = null;
 function openDay(k){
-  const d = parseKey(k), r = get(k) || blank(), can = editable(k);
+  const d = parseKey(k);
+  const canChain = chainEditable(k), canJournal = journalEditable(k);
   openKey = k;
   $('mDayT').textContent = `${DOW[d.getDay()]}, ${MON[d.getMonth()]} ${d.getDate()}`;
-  const st = stateOf(k);
   const body = $('mDayBody');
 
-  if(can){
-    body.innerHTML = `
-      <div class="dd-x"><svg viewBox="0 0 100 100">
-        ${r.w?'<line x1="16" y1="16" x2="84" y2="84"/>':''}
-        ${r.c?'<line x1="84" y1="16" x2="16" y2="84"/>':''}
-        ${!r.w&&!r.c?'<circle cx="50" cy="50" r="30" fill="none" stroke="var(--rule)" stroke-width="4" stroke-dasharray="5 11"/>':''}
-      </svg></div>
-      <div class="toggle-line"><div><div class="t1">Workout</div></div>
-        <button class="sw" id="ddW" aria-pressed="${r.w}"></button></div>
-      <div class="toggle-line"><div><div class="t1">Content</div></div>
-        <button class="sw" id="ddC" aria-pressed="${r.c}"></button></div>
-      <div class="toggle-line"><div><div class="t1">Rest day</div><div class="t2">Bridges the chain</div></div>
-        <button class="sw" id="ddR" aria-pressed="${r.r}"></button></div>
-      <div class="field" style="margin-top:14px">
-        <label>Mood</label>
-        <div class="mood-dots" id="ddMood"></div>
+  /* Built once per open. It used to be rebuilt on every interaction, which
+     is survivable for a switch and impossible for a textarea. */
+  body.innerHTML = `
+    <div class="dd-x"><svg viewBox="0 0 100 100" id="ddX"></svg></div>
+    <div class="dd-meta" id="ddState"></div>
+    ${canChain ? `
+      <div class="dd-sec">
+        <div class="toggle-line"><div><div class="t1">Workout</div></div>
+          <button class="sw" id="ddW" aria-pressed="false"></button></div>
+        <div class="toggle-line"><div><div class="t1">Content</div></div>
+          <button class="sw" id="ddC" aria-pressed="false"></button></div>
+        <div class="toggle-line"><div><div class="t1">Rest day</div><div class="t2">Bridges the chain</div></div>
+          <button class="sw" id="ddR" aria-pressed="false"></button></div>
+      </div>`
+    : `<div class="dd-locked" id="ddLocked"></div>`}
+    ${canJournal ? `
+      <div class="dd-sec">
+        <div class="mood-head"><span class="eyebrow">Mood</span>
+          <span class="mood-name none" id="ddMoodName">Not logged</span></div>
+        <div class="mood-scale" id="ddMood" role="radiogroup" aria-label="Mood"></div>
       </div>
-      <div class="field">
-        <label for="ddNote">Note</label>
-        <input type="text" id="ddNote" maxlength="240" value="${(r.n||'').replace(/"/g,'&quot;')}" placeholder="One line about this day…">
-      </div>`;
-    const re = () => { openDay(k); };
-    $('ddW').onclick = () => { mutate(k, x => x.w = !x.w); re(); };
-    $('ddC').onclick = () => { mutate(k, x => x.c = !x.c); re(); };
+      <div class="dd-sec">
+        <div class="recap-head"><span class="eyebrow">Recap</span>
+          <span class="saved" id="ddSaved">Saved</span></div>
+        <textarea id="ddRecap" maxlength="4000" aria-label="Recap for this day"></textarea>
+      </div>
+      <div class="dd-sec">
+        <div class="eyebrow" style="margin-bottom:10px">Also</div>
+        <div class="extras-body" id="ddExtras" style="padding:0"></div>
+      </div>` : ''}`;
+
+  const paint = () => {
+    const r = get(k) || blank(), st = stateOf(k);
+    $('ddX').innerHTML =
+      (r.w ? '<line x1="16" y1="16" x2="84" y2="84"/>' : '') +
+      (r.c ? '<line x1="84" y1="16" x2="16" y2="84"/>' : '') +
+      (!r.w && !r.c ? '<circle cx="50" cy="50" r="30" fill="none" stroke="var(--rule)" stroke-width="4" stroke-dasharray="5 11"/>' : '');
+    $('ddState').innerHTML = '<b>' + (
+      st === 'full' ? 'Full X' : st === 'rest' ? 'Rest day' :
+      st === 'half' ? (r.w ? 'Workout only' : 'Content only') : 'Nothing logged') + '</b>';
+    if(canChain){
+      $('ddW').setAttribute('aria-pressed', String(r.w));
+      $('ddC').setAttribute('aria-pressed', String(r.c));
+      $('ddR').setAttribute('aria-pressed', String(r.r));
+    } else {
+      $('ddLocked').textContent =
+        `The chain is locked here — past your ${S.cfg.backfill}-day backfill window, which is the point. ` +
+        `Mood and recap stay open for good.`;
+    }
+    if(canJournal){
+      mountMood($('ddMood'), () => k, $('ddMoodName'));
+      mountRecap($('ddRecap'), () => k, $('ddSaved'));
+      mountExtras($('ddExtras'), () => k);
+    }
+  };
+  repaintDay = paint;
+  paint();
+
+  if(canChain){
+    $('ddW').onclick = () => mutate(k, x => x.w = !x.w);
+    $('ddC').onclick = () => mutate(k, x => x.c = !x.c);
     $('ddR').onclick = () => {
       const cur = get(k);
       if(!(cur && cur.r)){
@@ -1400,33 +2021,8 @@ function openDay(k){
           toast('No rest days left this month.'); return;
         }
       }
-      mutate(k, x => x.r = !x.r); re();
+      mutate(k, x => x.r = !x.r);
     };
-    const md = $('ddMood');
-    for(let i=1;i<=5;i++){
-      const b = document.createElement('button');
-      b.className = 'md'; b.innerHTML = '<i></i>';
-      b.setAttribute('aria-pressed', String(r.m === i));
-      b.setAttribute('aria-label', `Mood ${i} of 5`);
-      b.onclick = () => { mutate(k, x => { x.m = (x.m === i ? null : i); }); re(); };
-      md.appendChild(b);
-    }
-    const nt = $('ddNote');
-    nt.oninput = () => { const v = nt.value; clearTimeout(nt._t); nt._t = setTimeout(() => mutate(k, x => x.n = v), 350); };
-  } else {
-    const label = st === 'full' ? 'Full X' : st === 'rest' ? 'Rest day'
-      : st === 'half' ? (r.w ? 'Workout only' : 'Content only') : 'Nothing logged';
-    body.innerHTML = `
-      <div class="dd-x"><svg viewBox="0 0 100 100">
-        ${r.w?'<line x1="16" y1="16" x2="84" y2="84"/>':''}
-        ${r.c?'<line x1="84" y1="16" x2="16" y2="84"/>':''}
-        ${!r.w&&!r.c?'<circle cx="50" cy="50" r="30" fill="none" stroke="var(--rule)" stroke-width="4" stroke-dasharray="5 11"/>':''}
-      </svg></div>
-      <div class="dd-meta"><b>${label}</b>${r.m != null ? ` · mood ${r.m}/5` : ''}</div>
-      ${r.n ? `<div class="dd-note">${escapeHtml(r.n)}</div>` : ''}
-      <div class="dd-meta" style="margin-top:14px;color:var(--faint)">
-        Locked — outside your ${S.cfg.backfill}-day backfill window. That's the point.
-      </div>`;
   }
   openModal('mDay');
 }
@@ -1459,10 +2055,6 @@ function toast(msg){
 /* ═══════════════ interactions ═══════════════ */
 $('tgW').onclick = () => { const k = todayKey(); mutate(k, x => x.w = !x.w); celebrate(k); };
 $('tgC').onclick = () => { const k = todayKey(); mutate(k, x => x.c = !x.c); celebrate(k); };
-$('moodNote').oninput = e => {
-  const v = e.target.value; clearTimeout($('moodNote')._t);
-  $('moodNote')._t = setTimeout(() => mutate(todayKey(), x => x.n = v), 400);
-};
 $('btnRest').onclick = () => {
   const k = todayKey(), r = get(k), t = TODAY();
   if(!(r && r.r) && restUsed(t.getFullYear(), t.getMonth()) >= (S.cfg.restPerMonth|0)){
@@ -1484,14 +2076,16 @@ function celebrate(k){
 /* view switching */
 function setView(v){
   view = v;
-  $('vMonth').setAttribute('aria-selected', v==='month');
-  $('vYear').setAttribute('aria-selected', v==='year');
-  $('vAll').setAttribute('aria-selected', v==='all');
+  for(const [id, name] of [['vMonth','month'],['vYear','year'],['vAll','all'],['vLog','log']])
+    $(id).setAttribute('aria-selected', String(v === name));
+  if(v === 'log') logShown = LOG_PAGE;
   renderCal(); renderStats();
 }
 $('vMonth').onclick = () => setView('month');
 $('vYear').onclick  = () => setView('year');
 $('vAll').onclick   = () => setView('all');
+$('vLog').onclick   = () => setView('log');
+$('lensToggle').onclick = () => { moodLens = !moodLens; renderCal(); };
 $('navPrev').onclick = () => {
   if(view === 'month'){ cursor = new Date(cursor.getFullYear(), cursor.getMonth()-1, 1); }
   else { yearCursor--; }
@@ -1518,33 +2112,35 @@ $('btnTheme').onclick = () => {
 
 /* settings */
 $('noticeAction').onclick = () => $('btnSettings').click();
+$('extrasToggle').onclick = () => {
+  const t = $('extrasToggle'), open = t.getAttribute('aria-expanded') === 'true';
+  t.setAttribute('aria-expanded', String(!open));
+  $('extrasBody').hidden = open;
+};
 $('btnSettings').onclick = () => {
   $('sUrl').value = S.sync.url; $('sKey').value = S.sync.key;
   $('sTime').value = S.cfg.notifTime; $('sBackfill').value = S.cfg.backfill;
   $('sRest').value = S.cfg.restPerMonth;
   $('swNotif').setAttribute('aria-pressed', String(!!S.cfg.notif));
-  $('syncMsg').textContent = FILE_MODE
-    ? 'Opened straight from a file, so syncing is off — browsers block it. Put the app on a URL and this connects itself.'
-    : (S.sync.url ? 'Connected.' : 'Not connected — data lives on this device only.');
-  $('syncMsg').className = 'status-msg ' + (FILE_MODE ? 'dim' : (S.sync.url ? 'ok' : 'dim'));
+  renderExtrasEditor();
   openModal('mSettings');
+  renderSync();                    // one source of truth, not a second opinion
 };
 $('btnSaveSync').onclick = async () => {
   S.sync.url = $('sUrl').value.trim().replace(/\/+$/,'');
   S.sync.key = $('sKey').value.trim();
-  save();
-  renderNotice();
-  if(FILE_MODE){ msg('syncMsg','Saved — but this copy was opened straight from a file, and browsers block network calls from those. Open the hosted URL and it will connect there.','dim'); return; }
-  if(!S.sync.url || !S.sync.key){ setSyncDot('off'); msg('syncMsg','Sync off. Local only.','dim'); return; }
-  msg('syncMsg','Connecting…','dim'); setSyncDot('busy');
-  const ok = await syncNow(true, true);
-  msg('syncMsg', ok ? 'Connected. Your days are syncing.' : 'Could not reach the database — check the URL and key, and that the `days` table exists.', ok ? 'ok' : 'err');
+  lastSyncError = ''; synced = false;        // new credentials, unproven again
+  save(); renderSync();
+  if(syncState() === 'file' || syncState() === 'local') return;   // renderSync already said why
+  msg('syncMsg','Connecting…','dim');
+  await syncNow(true, true);
+  renderSync();
 };
 $('btnSyncNow').onclick = async () => {
-  if(FILE_MODE){ msg('syncMsg','Not from a file — browsers block it. Open the hosted URL instead.','dim'); return; }
+  if(syncState() === 'file' || syncState() === 'local'){ renderSync(); return; }
   msg('syncMsg','Syncing…','dim');
   const ok = await syncNow(true, true);
-  msg('syncMsg', ok ? 'Up to date.' : 'Sync failed.', ok ? 'ok' : 'err');
+  if(ok) msg('syncMsg','Up to date.','ok');
 };
 $('sTime').onchange = e => { S.cfg.notifTime = e.target.value || '17:00'; save(); };
 $('sBackfill').onchange = e => { S.cfg.backfill = Math.max(0, Math.min(30, +e.target.value || 0)); save(); renderAll(); };
@@ -1570,6 +2166,41 @@ function exportJSON(){
   setTimeout(() => URL.revokeObjectURL(a.href), 2000);
 }
 $('btnExport').onclick = exportJSON;
+$('btnDigest').onclick = () => copyDigest('period');
+$('btnDigestWeek').onclick = () => copyDigest('week');
+
+/* Settings: the optional-habit list. Ids are generated once and kept, so
+   renaming a habit never orphans the days already logged against it. */
+function renderExtrasEditor(){
+  const host = $('xEditor'), list = extraList();
+  host.innerHTML = list.map((e, i) => `
+    <div class="xrow">
+      <input type="text" value="${escapeHtml(e.label)}" data-i="${i}" maxlength="28" aria-label="Habit name">
+      <button data-del="${i}" aria-label="Remove ${escapeHtml(e.label)}" title="Remove">&times;</button>
+    </div>`).join('');
+  host.querySelectorAll('input[data-i]').forEach(inp => {
+    inp.onchange = () => {
+      const l = extraList().slice();
+      l[+inp.dataset.i] = Object.assign({}, l[+inp.dataset.i], { label: inp.value.trim() || 'Untitled' });
+      S.cfg.extras = l; save(); renderAll();
+    };
+  });
+  host.querySelectorAll('button[data-del]').forEach(b => {
+    b.onclick = () => {
+      const l = extraList().slice(); const gone = l.splice(+b.dataset.del, 1)[0];
+      S.cfg.extras = l; save(); renderExtrasEditor(); renderAll();
+      toast(`Removed ${gone.label}. Days already logged against it are kept.`);
+    };
+  });
+}
+$('btnAddExtra').onclick = () => {
+  const l = extraList().slice();
+  if(l.length >= 10){ toast('Ten is plenty — this is meant to stay optional.'); return; }
+  l.push({ id:'x' + Date.now().toString(36), label:'New habit' });
+  S.cfg.extras = l; save(); renderExtrasEditor(); renderAll();
+  const last = $('xEditor').querySelector('.xrow:last-child input');
+  if(last){ last.focus(); last.select(); }
+};
 $('btnExport2').onclick = exportJSON;
 $('btnImport').onclick = () => { $('importField').hidden = !$('importField').hidden; };
 $('btnImportGo').onclick = () => {
@@ -1598,10 +2229,55 @@ $('btnWipe').onclick = () => {
 const FILE_MODE = location.protocol === 'file:';
 let dirty = new Set(JSON.parse(localStorage.getItem('chain.dirty') || '[]'));
 function persistDirty(){ localStorage.setItem('chain.dirty', JSON.stringify([...dirty])); }
-function queuePush(k){ if(!S.sync.url) return; dirty.add(k); persistDirty(); scheduleFlush(); }
+
+/* ── one answer to "is this device syncing?" ────────────────────
+   There used to be three. The banner asked `url && key`, the settings
+   message asked `url` alone, and the dot asked something else again —
+   so a device that had the built-in project URL but had never been given
+   a key was told, truthfully by one indicator and falsely by another,
+   both that it wasn't syncing and that it was connected. Everything now
+   reads this. */
+let lastSyncError = '';
+let synced = false;               // declared before syncState() reads it
+function syncState(){
+  if(FILE_MODE)                     return 'file';    // browsers block network from file://
+  if(!S.sync.url || !S.sync.key)    return 'local';   // nothing to sync to
+  if(lastSyncError)                 return 'error';
+  if(!S.meta.lastPull && !synced)   return 'pending'; // configured, not yet proven
+  return 'ok';
+}
+
+const SYNC_COPY = {
+  file:    { dot:'off',  short:'Local only',   msg:'Opened straight from a file, so syncing is off — browsers block network calls from file:// pages. Open the hosted URL and it connects itself.' },
+  local:   { dot:'off',  short:'Not syncing',  msg:'Not connected — everything you log stays on this device. Paste the publishable key above, or open the app once from your #k= link.' },
+  pending: { dot:'busy', short:'Connecting…',  msg:'Connecting…' },
+  ok:      { dot:'on',   short:'Syncing',      msg:'Connected. Your days are syncing.' },
+  error:   { dot:'err',  short:'Sync failing', msg:'' }   // msg filled from lastSyncError
+};
+
+function queuePush(k){
+  const st = syncState();
+  if(st === 'file' || st === 'local') return;   // don't grow a queue that can never drain
+  dirty.add(k); persistDirty(); scheduleFlush();
+}
 let flushT;
 function scheduleFlush(){ clearTimeout(flushT); flushT = setTimeout(() => syncNow(false), 900); }
-function setSyncDot(s){ $('syncDot').dataset.s = s; }
+
+/* Paint every indicator from the one state. */
+function renderSync(){
+  const st = syncState(), c = SYNC_COPY[st];
+  const dot = $('syncDot');
+  dot.dataset.s = c.dot;
+  dot.title = st === 'error' ? `Sync failing — ${lastSyncError}` : c.short;
+  renderNotice();
+  /* If Settings is open, keep its line honest instead of leaving the
+     snapshot it took when the modal opened. */
+  if(modalOpen === 'mSettings'){
+    const txt = st === 'error' ? `Couldn't reach the database — ${lastSyncError}` : c.msg;
+    msg('syncMsg', txt, st === 'ok' ? 'ok' : st === 'error' ? 'err' : 'dim');
+  }
+}
+function setSyncDot(){ renderSync(); }   // legacy call sites
 
 function headers(){
   return { apikey:S.sync.key, Authorization:`Bearer ${S.sync.key}`, 'Content-Type':'application/json' };
@@ -1611,17 +2287,16 @@ function headers(){
              first time a device connects, otherwise history typed before
              sync was switched on would never leave the device. */
 async function syncNow(full, pushAll){
-  if(FILE_MODE || !S.sync.url || !S.sync.key){ setSyncDot('off'); return false; }
-  setSyncDot('busy');
+  const st0 = syncState();
+  if(st0 === 'file' || st0 === 'local'){ renderSync(); return false; }
+  $('syncDot').dataset.s = 'busy';
   try{
     if(pushAll){ Object.keys(S.days).forEach(k => dirty.add(k)); persistDirty(); }
     // push
     if(dirty.size){
-      const rows = [...dirty].map(k => {
-        const r = S.days[k];
-        return r ? { d:k, w:r.w, c:r.c, r:r.r, m:r.m, n:r.n||'', u:r.u||Date.now() }
-                 : { d:k, w:false, c:false, r:false, m:null, n:'', u:Date.now() };
-      });
+      /* toRow() for both the live and the tombstone case, so every row in
+         the batch has identical keys — PostgREST rejects a mixed batch. */
+      const rows = [...dirty].map(k => toRow(k, S.days[k]));
       const res = await fetch(`${S.sync.url}/rest/v1/days`, {
         method:'POST',
         headers: Object.assign(headers(), { Prefer:'resolution=merge-duplicates,return=minimal' }),
@@ -1642,17 +2317,19 @@ async function syncNow(full, pushAll){
       if(u > maxU) maxU = u;
       const cur = S.days[k];
       if(!cur || u > (cur.u || 0)){
-        const rec = { w:!!row.w, c:!!row.c, r:!!row.r, m:row.m == null ? null : Number(row.m), n:row.n || '', u };
-        if(isEmpty(rec)) delete S.days[k]; else { S.days[k] = rec; touchStart(k); }
+        const rec = fromRow(row);
+        if(isEmpty(rec)) delete S.days[k]; else { S.days[k] = rec; touchStart(k, rec); }
         changed = true;
       }
     }
-    S.meta.lastPull = maxU; save();
+    S.meta.lastPull = maxU; synced = true; lastSyncError = ''; save();
     if(changed) renderAll();
-    setSyncDot('on');
+    renderSync();
     return true;
   }catch(e){
-    console.warn('sync', e); setSyncDot('err');
+    console.warn('sync', e);
+    lastSyncError = String(e && e.message || e).slice(0, 120);
+    renderSync();                 // a failing sync says so in words, not a 5px dot
     return false;
   }
 }
@@ -1684,8 +2361,9 @@ function tick(){
   if(todayKey() !== bootDay){ bootDay = todayKey(); cursor = TODAY(); renderAll(); }
   checkNudge();
 }
-document.addEventListener('visibilitychange', () => { if(!document.hidden){ tick(); if(S.sync.url) syncNow(false); } });
-window.addEventListener('online', () => { if(S.sync.url) syncNow(false); });
+const canSync = () => { const s = syncState(); return s !== 'file' && s !== 'local'; };
+document.addEventListener('visibilitychange', () => { if(!document.hidden){ tick(); if(canSync()) syncNow(false); } });
+window.addEventListener('online', () => { if(canSync()) syncNow(false); });
 setInterval(tick, 30000);
 
 /* measure the marker strokes so the draw-on animation has a real length */
@@ -1706,13 +2384,10 @@ if(BOOT){
 }
 
 applyTheme();
-setSyncDot(S.sync.url && S.sync.key && !FILE_MODE ? 'busy' : 'off');
-if(FILE_MODE){
-  $('footNote').textContent = 'Local only — opened from a file. Put it on a URL to sync.';
-  $('syncDot').title = 'Local only (opened from a file)';
-}
+if(FILE_MODE) $('footNote').textContent = 'Local only — opened from a file. Put it on a URL to sync.';
 renderAll();
-if(S.sync.url && S.sync.key && !FILE_MODE){
+renderSync();
+if(canSync()){
   /* First run on this device pushes whatever is already here and pulls the
      whole table; after that, only what changed. */
   const firstRun = !S.meta.lastPull;
